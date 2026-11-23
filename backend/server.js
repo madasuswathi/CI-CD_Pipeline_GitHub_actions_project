@@ -10,7 +10,25 @@ const db = require("./config/db");
 
 const app = express();
 
-app.use(cors());
+app.disable("x-powered-by");
+
+const allowedOrigins = (
+    process.env.CORS_ORIGINS ||
+    "http://localhost:5000,http://localhost:5001"
+)
+    .split(",")
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(null, false);
+    }
+}));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../frontend")));
 

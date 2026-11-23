@@ -7,7 +7,7 @@ WORKDIR /app
 
 COPY backend/package*.json ./backend/
 
-RUN cd backend && npm ci --omit=dev
+RUN cd backend && npm ci --omit=dev --ignore-scripts
 
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
