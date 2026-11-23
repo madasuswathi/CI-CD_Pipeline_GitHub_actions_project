@@ -259,8 +259,8 @@ async function addToCart(productId) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    loadProducts("featured-products", true);
-    loadProducts("all-products", false);
+    void loadProducts("featured-products", true);
+    void loadProducts("all-products", false);
 
     const categoryFilter =
         document.getElementById("category-filter");
