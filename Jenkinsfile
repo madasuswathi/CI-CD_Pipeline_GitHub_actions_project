@@ -3,9 +3,13 @@ pipeline {
 
     options {
         timestamps()
+        disableConcurrentBuilds()
     }
 
     environment {
+        DEPLOY_HOST = 'ubuntu@3.108.51.128'
+        DEPLOY_DIR = '/home/ubuntu/CI-CD_Pipeline_GitHub_actions_project'
+        SSH_KEY = '/var/lib/jenkins/.ssh/farmfresh_ec2_deploy'
         DOCKER_IMAGE = 'madasuswathi/farmfresh-ecommerce:latest'
     }
 
@@ -17,26 +21,37 @@ pipeline {
             }
         }
 
-        stage('Pull Docker Image') {
+        stage('Verify Docker Image') {
             steps {
-                sh 'docker pull "$DOCKER_IMAGE"'
+                echo "Deployment image: ${DOCKER_IMAGE}"
+                sh 'test -f "$SSH_KEY"'
             }
         }
 
-        stage('Verify Docker Image') {
+        stage('Deploy to AWS EC2') {
             steps {
-                sh 'docker image inspect "$DOCKER_IMAGE"'
-                echo 'FarmFresh Docker image verified successfully.'
+                sh '''
+                    ssh -i "$SSH_KEY" \
+                        -o BatchMode=yes \
+                        -o StrictHostKeyChecking=yes \
+                        "$DEPLOY_HOST" \
+                        "cd '$DEPLOY_DIR' && \
+                         docker compose pull app && \
+                         docker compose up -d --no-deps app && \
+                         curl -fsS http://127.0.0.1:5001/api/health && \
+                         echo && \
+                         docker compose ps app"
+                '''
             }
         }
     }
 
     post {
         success {
-            echo 'FarmFresh Jenkins pipeline completed successfully.'
+            echo 'FarmFresh deployment completed successfully on AWS EC2.'
         }
         failure {
-            echo 'FarmFresh Jenkins pipeline failed. Check the console output.'
+            echo 'FarmFresh deployment failed. Check the console output.'
         }
     }
 }
