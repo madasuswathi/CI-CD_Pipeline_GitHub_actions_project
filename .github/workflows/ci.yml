@@ -1,0 +1,43 @@
+name: FarmFresh CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-check:
+    name: Build and Validate FarmFresh
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci --prefix backend
+
+      - name: Check JavaScript syntax
+        run: |
+          find backend frontend admin -type f -name "*.js" \
+            -not -path "*/node_modules/*" \
+            -print0 | xargs -0 -r -n1 node --check
+
+      - name: Build Docker image
+        run: docker build -t farmfresh-ci:${{ github.sha }} .
+
+      - name: CI result
+        run: echo "FarmFresh CI pipeline completed successfully."
