@@ -57,7 +57,7 @@ pipeline {
                              echo "No new image. Deployment unchanged."
                          fi
 
-                         curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 3 http://127.0.0.1:5001/api/health
+                         curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-all-errors --retry-delay 3 --retry-max-time 90 http://127.0.0.1:5001/api/health
                          echo
                          docker compose ps app'
                 '''
