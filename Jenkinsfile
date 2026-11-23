@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    triggers {
+        cron('H/5 * * * *')
+    }
+
     options {
         timestamps()
         disableConcurrentBuilds()
@@ -21,26 +25,41 @@ pipeline {
             }
         }
 
-        stage('Verify Docker Image') {
+        stage('Verify Deployment Access') {
             steps {
-                echo "Deployment image: ${DOCKER_IMAGE}"
                 sh 'test -f "$SSH_KEY"'
             }
         }
 
-        stage('Deploy to AWS EC2') {
+        stage('Check Docker Hub and Deploy If Changed') {
             steps {
                 sh '''
                     ssh -i "$SSH_KEY" \
                         -o BatchMode=yes \
                         -o StrictHostKeyChecking=yes \
                         "$DEPLOY_HOST" \
-                        "cd '$DEPLOY_DIR' && \
-                         docker compose pull app && \
-                         docker compose up -d --no-deps app && \
-                         curl -fsS http://127.0.0.1:5001/api/health && \
-                         echo && \
-                         docker compose ps app"
+                        'set -eu
+                         cd /home/ubuntu/CI-CD_Pipeline_GitHub_actions_project
+                         echo "Checking Docker Hub..."
+                         docker compose pull app
+
+                         NEW_IMAGE_ID=$(docker image inspect madasuswathi/farmfresh-ecommerce:latest --format "{{.Id}}")
+                         RUNNING_IMAGE_ID=$(docker inspect farmfresh-app --format "{{.Image}}" 2>/dev/null || true)
+                         RUNNING=$(docker inspect farmfresh-app --format "{{.State.Running}}" 2>/dev/null || echo false)
+
+                         echo "Latest image: $NEW_IMAGE_ID"
+                         echo "Running image: $RUNNING_IMAGE_ID"
+
+                         if [ "$NEW_IMAGE_ID" != "$RUNNING_IMAGE_ID" ] || [ "$RUNNING" != "true" ]; then
+                             echo "New image detected. Deploying..."
+                             docker compose up -d --no-deps app
+                         else
+                             echo "No new image. Deployment unchanged."
+                         fi
+
+                         curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 3 http://127.0.0.1:5001/api/health
+                         echo
+                         docker compose ps app'
                 '''
             }
         }
@@ -48,10 +67,10 @@ pipeline {
 
     post {
         success {
-            echo 'FarmFresh deployment completed successfully on AWS EC2.'
+            echo 'FarmFresh automatic deployment check completed successfully.'
         }
         failure {
-            echo 'FarmFresh deployment failed. Check the console output.'
+            echo 'FarmFresh deployment check failed. Review the console output.'
         }
     }
 }
