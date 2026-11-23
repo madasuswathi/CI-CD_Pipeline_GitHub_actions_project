@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop Products | FarmFresh</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="announcement">Discover our natural product collection</div>
+
+<header class="navbar">
+    <a href="index.html" class="logo">🌿 FarmFresh</a>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="products.html">Shop</a>
+        <a href="index.html#categories">Categories</a>
+    </nav>
+
+    <div class="nav-actions">
+        <a href="login.html" class="nav-login">Login</a>
+        <a href="cart.html" class="cart-button">
+            🛒 Cart <span id="cart-count">0</span>
+        </a>
+    </div>
+</header>
+
+<section class="page-banner">
+    <span class="eyebrow">FARMFRESH COLLECTION</span>
+    <h1>Shop Natural Products</h1>
+    <p>Explore our carefully selected collection of everyday essentials.</p>
+</section>
+
+<section class="section shop-section">
+    <div class="shop-toolbar">
+        <div class="search-box">
+            <input
+                type="search"
+                id="product-search"
+                placeholder="Search honey, ghee, pickles..."
+            >
+            <button id="search-button">Search</button>
+        </div>
+
+        <select id="category-filter">
+            <option value="">All Categories</option>
+            <option value="honey">Honey</option>
+            <option value="ghee">Ghee</option>
+            <option value="pickles">Pickles</option>
+            <option value="oils">Oils</option>
+            <option value="spices">Spices</option>
+            <option value="snacks">Snacks</option>
+            <option value="grains-pulses">Grains &amp; Pulses</option>
+            <option value="jaggery-sweeteners">Jaggery &amp; Sweeteners</option>
+        </select>
+    </div>
+
+    <div class="product-grid" id="all-products">
+        <p class="loading">Loading products...</p>
+    </div>
+</section>
+
+<footer class="footer">
+    <div class="footer-brand">
+        <a href="index.html" class="logo">🌿 FarmFresh</a>
+        <p>Natural products for everyday living.</p>
+    </div>
+    <div class="copyright">
+        © 2026 FarmFresh. All rights reserved.
+    </div>
+</footer>
+
+<script src="js/main.js"></script>
+
+</body>
+</html>
+

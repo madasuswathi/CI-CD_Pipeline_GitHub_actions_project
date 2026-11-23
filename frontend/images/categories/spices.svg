@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600">
+  <rect width="600" height="600" fill="#f3ded4"/>
+  <circle cx="300" cy="245" r="125" fill="#a54b32" opacity="0.25"/>
+  <path d="M300 330 C210 260 230 175 300 145 C370 175 390 260 300 330Z" fill="#a54b32"/>
+  <path d="M300 320 Q300 245 300 165" stroke="#ffffff" stroke-width="9" fill="none"/>
+  <text x="300" y="435" text-anchor="middle" font-family="Arial" font-size="36" font-weight="bold" fill="#244b36">Organic Spices</text>
+  <text x="300" y="480" text-anchor="middle" font-family="Arial" font-size="20" fill="#526b50">FarmFresh Organic</text>
+</svg>

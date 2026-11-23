@@ -1,0 +1,64 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | FarmFresh</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-page">
+
+<header class="navbar">
+    <a href="index.html" class="logo">🌿 FarmFresh</a>
+    <a href="products.html" class="nav-login">Continue Shopping</a>
+</header>
+
+<div class="auth-container">
+    <div class="auth-decoration">
+        <span>🌿</span>
+        <h2>Welcome Back!</h2>
+        <p>Discover natural goodness for your everyday life.</p>
+    </div>
+
+    <div class="auth-card">
+        <span class="eyebrow">YOUR FARMFRESH ACCOUNT</span>
+        <h1>Sign In</h1>
+        <p>Enter your account details to continue.</p>
+
+        <form id="login-form">
+            <label>Email Address</label>
+            <input
+                type="email"
+                id="login-email"
+                placeholder="you@example.com"
+                required
+            >
+
+            <label>Password</label>
+            <input
+                type="password"
+                id="login-password"
+                placeholder="Enter password"
+                required
+            >
+
+            <button type="submit" class="btn-primary full-width">
+                Login to Account
+            </button>
+
+            <p id="login-message" class="form-message"></p>
+        </form>
+
+        <p class="auth-switch">
+            Don't have an account?
+            <a href="register.html">Create Account</a>
+        </p>
+    </div>
+</div>
+
+<script src="js/auth.js"></script>
+
+</body>
+</html>
+

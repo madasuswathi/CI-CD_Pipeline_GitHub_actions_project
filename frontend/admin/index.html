@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmFresh Admin Dashboard</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div id="loginPage" class="admin-login">
+        <form id="loginForm" class="login-card">
+            <div class="admin-logo">🌿 FarmFresh</div>
+            <p class="eyebrow">ADMINISTRATION</p>
+            <h1>Welcome back</h1>
+            <p class="muted">Sign in to manage your store.</p>
+
+            <label for="email">Email address</label>
+            <input id="email" type="email" placeholder="Admin email" required>
+
+            <label for="password">Password</label>
+            <input id="password" type="password" placeholder="Password" required>
+
+            <p id="loginMessage" class="message"></p>
+            <button class="primary-btn" type="submit">Sign in</button>
+            <a class="back-link" href="../index.html">← Back to store</a>
+        </form>
+    </div>
+
+    <div id="dashboardPage" class="admin-layout hidden">
+        <aside class="sidebar">
+            <a href="#" class="admin-logo">🌿 FarmFresh</a>
+            <p class="sidebar-label">ADMIN MENU</p>
+            <button class="nav-item active" data-page="overview">▦ Overview</button>
+            <button class="nav-item" data-page="products">▤ Products</button>
+            <button class="nav-item" data-page="orders">▣ Orders</button>
+            <div class="sidebar-bottom">
+                <a href="../index.html">← View Store</a>
+                <button id="logoutBtn">↪ Logout</button>
+            </div>
+        </aside>
+
+        <main class="admin-main">
+            <header class="admin-header">
+                <div>
+                    <p class="eyebrow">FARMFRESH MANAGEMENT</p>
+                    <h1 id="pageTitle">Overview</h1>
+                </div>
+                <span class="admin-user">Administrator</span>
+            </header>
+
+            <section id="overviewPage" class="admin-page">
+                <div class="stats-grid">
+                    <article class="stat-card">
+                        <span>Total products</span>
+                        <strong id="productCount">—</strong>
+                    </article>
+                    <article class="stat-card">
+                        <span>Total orders</span>
+                        <strong id="orderCount">—</strong>
+                    </article>
+                    <article class="stat-card">
+                        <span>Low stock products</span>
+                        <strong id="lowStockCount">—</strong>
+                    </article>
+                    <article class="stat-card">
+                        <span>Order revenue</span>
+                        <strong id="revenueTotal">—</strong>
+                    </article>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-heading">
+                        <h2>Recent orders</h2>
+                        <button class="text-btn" data-go="orders">View all orders →</button>
+                    </div>
+                    <div id="recentOrders" class="table-wrap"></div>
+                </div>
+            </section>
+
+            <section id="productsPage" class="admin-page hidden">
+                <div class="panel">
+                    <div class="panel-heading product-heading">
+                        <div>
+                            <h2>Product management</h2>
+                            <p class="muted">Manage your FarmFresh products.</p>
+                        </div>
+                        <button id="addProductBtn" class="primary-btn">+ Add product</button>
+                    </div>
+                    <div class="toolbar">
+                        <input id="productSearch" type="search" placeholder="Search products...">
+                        <select id="categoryFilter">
+                            <option value="">All categories</option>
+                        </select>
+                    </div>
+                    <div id="productsTable" class="table-wrap"></div>
+                </div>
+            </section>
+
+            <section id="ordersPage" class="admin-page hidden">
+                <div class="panel">
+                    <div class="panel-heading">
+                        <div>
+                            <h2>Customer orders</h2>
+                            <p class="muted">Review orders placed by customers.</p>
+                        </div>
+                        <button id="refreshOrders" class="secondary-btn">↻ Refresh</button>
+                    </div>
+                    <div id="ordersTable" class="table-wrap"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="productModal" class="modal hidden">
+        <form id="productForm" class="modal-card">
+            <div class="panel-heading">
+                <h2 id="modalTitle">Add product</h2>
+                <button type="button" id="closeModal" class="close-btn">×</button>
+            </div>
+
+            <input type="hidden" id="productId">
+
+            <label for="productName">Product name</label>
+            <input id="productName" required maxlength="150">
+
+            <label for="productDescription">Description</label>
+            <textarea id="productDescription" rows="3"></textarea>
+
+            <label for="productCategory">Category</label>
+            <select id="productCategory" required></select>
+
+            <div class="form-row">
+                <div>
+                    <label for="productPrice">Price (₹)</label>
+                    <input id="productPrice" type="number" min="0.01" step="0.01" required>
+                </div>
+                <div>
+                    <label for="productStock">Stock</label>
+                    <input id="productStock" type="number" min="0" step="1" required>
+                </div>
+            </div>
+
+            <label for="productImage">Image path</label>
+            <input id="productImage" placeholder="/images/products/product-01.jpg">
+
+            <label class="featured-label">
+                <input id="productFeatured" type="checkbox">
+                Show as featured product
+            </label>
+
+            <p id="productMessage" class="message"></p>
+            <div class="modal-actions">
+                <button type="button" id="cancelModal" class="secondary-btn">Cancel</button>
+                <button type="submit" class="primary-btn">Save product</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
