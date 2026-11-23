@@ -1,0 +1,16 @@
+.git
+.gitignore
+**/node_modules
+**/.env
+.env
+**/*.log
+**/*.backup*
+**/*.bak*
+coverage
+.nyc_output
+.vscode
+.idea
+
+# All environment and secret files
+.env.*
+**/.env.*
