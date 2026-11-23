@@ -53,5 +53,8 @@ async function updateImages() {
     }
 }
 
-updateImages();
+updateImages().catch(error => {
+    console.error("Unexpected image update error:", error);
+    process.exitCode = 1;
+});
 

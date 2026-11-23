@@ -127,7 +127,7 @@ async function changeQuantity(cartId, quantity) {
             throw new Error(data.message || "Update failed");
         }
 
-        loadCart();
+        await loadCart();
 
     } catch (error) {
         alert(error.message);
@@ -151,7 +151,7 @@ async function removeCartItem(cartId) {
             throw new Error(data.message || "Remove failed");
         }
 
-        loadCart();
+        await loadCart();
 
     } catch (error) {
         alert(error.message);

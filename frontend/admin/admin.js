@@ -454,4 +454,7 @@ async function startAdmin() {
     }
 }
 
-startAdmin();
+startAdmin().catch(error => {
+    console.error("Admin initialization failed:", error);
+    showLogin("Unable to initialize the admin dashboard. Please try again.");
+});
