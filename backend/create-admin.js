@@ -6,7 +6,13 @@ const db = require("./config/db");
 
 async function createAdmin() {
     try {
-        const password = await bcrypt.hash("Admin@12345", 10);
+        const adminPassword = process.env.ADMIN_PASSWORD;
+
+        if (!adminPassword) {
+            throw new Error("ADMIN_PASSWORD is not configured");
+        }
+
+        const password = await bcrypt.hash(adminPassword, 10);
 
         await db.query(
             `INSERT INTO users (name, email, password, role)
@@ -17,7 +23,6 @@ async function createAdmin() {
 
         console.log("Admin account created successfully");
         console.log("Email: admin@farmfresh.com");
-        console.log("Password: Admin@12345");
 
     } catch (error) {
         console.error(error);
@@ -26,4 +31,7 @@ async function createAdmin() {
     }
 }
 
-createAdmin();
+createAdmin().catch(error => {
+    console.error("Unexpected admin creation error:", error);
+    process.exitCode = 1;
+});
