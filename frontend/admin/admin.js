@@ -111,7 +111,7 @@ async function loadDashboard() {
 
     try {
         const [productData, orderData, categoryData] = await Promise.all([
-            api("/products"),
+            api("/admin/products"),
             api("/admin/orders"),
             api("/categories")
         ]);
@@ -133,7 +133,12 @@ function updateOverview() {
     document.getElementById("productCount").textContent = products.length;
     document.getElementById("orderCount").textContent = orders.length;
     document.getElementById("lowStockCount").textContent =
-        products.filter(product => Number(product.stock) < 10).length;
+        products.filter(product =>
+            Array.isArray(product.variants) &&
+            product.variants.some(variant =>
+                Number(variant.active) === 1 && Number(variant.stock) < 10
+            )
+        ).length;
 
     const revenue = orders.reduce(
         (total, order) => total + Number(order.total_amount || 0), 0
@@ -233,15 +238,26 @@ function populateCategories() {
     document.getElementById("productCategory").innerHTML = options;
 }
 
+
+const ADMIN_SIZE_OPTIONS = {
+    1: [{ label: "250 g", value: 250, unit: "g" }, { label: "500 g", value: 500, unit: "g" }, { label: "1 kg", value: 1000, unit: "g" }],
+    2: [{ label: "250 g", value: 250, unit: "g" }, { label: "500 g", value: 500, unit: "g" }, { label: "1 kg", value: 1000, unit: "g" }],
+    3: [{ label: "250 g", value: 250, unit: "g" }, { label: "500 g", value: 500, unit: "g" }, { label: "1 kg", value: 1000, unit: "g" }],
+    4: [{ label: "250 ml", value: 250, unit: "ml" }, { label: "500 ml", value: 500, unit: "ml" }, { label: "1 litre", value: 1000, unit: "ml" }],
+    5: [{ label: "100 g", value: 100, unit: "g" }, { label: "250 g", value: 250, unit: "g" }, { label: "500 g", value: 500, unit: "g" }],
+    6: [{ label: "100 g", value: 100, unit: "g" }, { label: "250 g", value: 250, unit: "g" }, { label: "500 g", value: 500, unit: "g" }],
+    7: [{ label: "500 g", value: 500, unit: "g" }, { label: "1 kg", value: 1000, unit: "g" }, { label: "2 kg", value: 2000, unit: "g" }],
+    8: [{ label: "250 g", value: 250, unit: "g" }, { label: "500 g", value: 500, unit: "g" }, { label: "1 kg", value: 1000, unit: "g" }]
+};
+
 function renderProducts() {
     const search = document.getElementById("productSearch").value.toLowerCase();
     const category = document.getElementById("categoryFilter").value;
 
     const filtered = products.filter(product => {
-        const matchesName = product.name.toLowerCase().includes(search);
+        const matchesName = String(product.name || "").toLowerCase().includes(search);
         const matchesCategory = !category ||
             String(product.category_id) === String(category);
-
         return matchesName && matchesCategory;
     });
 
@@ -252,35 +268,92 @@ function renderProducts() {
                     <tr>
                         <th>Product</th>
                         <th>Category</th>
-                        <th>Price</th>
-                        <th>Stock</th>
+                        <th>Variants</th>
+                        <th>Variant stock</th>
                         <th>Featured</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${filtered.map(product => `
-                        <tr>
-                            <td>
-                                <div class="product-cell">
-                                    <img src="${escapeHTML(product.image || "")}"
-                                         alt="" onerror="this.style.display='none'">
-                                    <span>${escapeHTML(product.name)}</span>
-                                </div>
-                            </td>
-                            <td>${escapeHTML(product.category_name || "—")}</td>
-                            <td>${money(product.price)}</td>
-                            <td>${escapeHTML(product.stock)}</td>
-                            <td>${Number(product.featured) ? "Yes" : "No"}</td>
-                            <td>
-                                <button class="action-btn" data-edit="${product.id}">Edit</button>
-                                <button class="action-btn delete" data-delete="${product.id}">Delete</button>
-                            </td>
-                        </tr>
-                    `).join("")}
+                    ${filtered.map(product => {
+                        const variants = Array.isArray(product.variants) ? product.variants : [];
+                        const totalStock = variants.reduce(
+                            (sum, variant) => sum + Number(variant.stock || 0), 0
+                        );
+                        return `
+                            <tr>
+                                <td>
+                                    <div class="product-cell">
+                                        <img src="${escapeHTML(product.image || "")}"
+                                             alt="" onerror="this.style.display='none'">
+                                        <span>${escapeHTML(product.name)}</span>
+                                    </div>
+                                </td>
+                                <td>${escapeHTML(product.category_name || "—")}</td>
+                                <td>${variants.length} / 3</td>
+                                <td>${totalStock}</td>
+                                <td>${Number(product.featured) ? "Yes" : "No"}</td>
+                                <td>
+                                    <button type="button" class="action-btn" data-edit="${escapeHTML(product.id)}">Edit</button>
+                                </td>
+                            </tr>`;
+                    }).join("")}
                 </tbody>
             </table>`
         : "<p class='muted'>No matching products found.</p>";
+}
+
+function renderNewVariantPriceFields() {
+    const categoryId = Number(document.getElementById("productCategory").value);
+    const sizes = ADMIN_SIZE_OPTIONS[categoryId] || [];
+    const fields = document.getElementById("variantPriceFields");
+
+    fields.innerHTML = sizes.length
+        ? sizes.map((size, index) => `
+            <div class="variant-price-field">
+                <label for="variantPrice${index}">${size.label} price (₹)</label>
+                <input id="variantPrice${index}" type="number"
+                       min="0.01" step="0.01" required
+                       placeholder="Price for ${size.label}">
+            </div>
+        `).join("")
+        : "<p class='muted'>Select a valid category to set variant prices.</p>";
+}
+
+function renderExistingVariants(product) {
+    const variants = Array.isArray(product.variants) ? product.variants : [];
+    const list = document.getElementById("variantManagementList");
+
+    if (!variants.length) {
+        list.innerHTML = "<p class='muted'>No variants are configured for this product yet.</p>";
+        return;
+    }
+
+    list.innerHTML = variants.map(variant => `
+        <div class="variant-admin-row" data-variant-row="${escapeHTML(variant.id)}">
+            <h4>${escapeHTML(variant.variant_label || "Variant")}</h4>
+            <div class="variant-admin-fields">
+                <div>
+                    <label>Price (₹)</label>
+                    <input type="number" min="0.01" step="0.01"
+                           data-variant-price value="${escapeHTML(variant.price)}" required>
+                </div>
+                <div>
+                    <label>Stock</label>
+                    <input type="number" min="0" step="1"
+                           data-variant-stock value="${escapeHTML(variant.stock ?? 0)}" required>
+                </div>
+                <label class="variant-active-label">
+                    <input type="checkbox" data-variant-active
+                           ${Number(variant.active) ? "checked" : ""}>
+                    Active
+                </label>
+            </div>
+            <button type="button" class="secondary-btn"
+                    data-save-variant="${escapeHTML(variant.id)}">Save variant</button>
+            <span class="muted" data-variant-message></span>
+        </div>
+    `).join("");
 }
 
 function openProductModal(product = null) {
@@ -288,16 +361,30 @@ function openProductModal(product = null) {
     document.getElementById("productMessage").textContent = "";
     document.getElementById("productId").value = product?.id || "";
     document.getElementById("modalTitle").textContent =
-        product ? "Edit product" : "Add product";
+        product ? "Edit product details" : "Add product";
+
+    const newPrices = document.getElementById("newVariantPrices");
+    const existingVariants = document.getElementById("existingVariantManagement");
+    const categorySelect = document.getElementById("productCategory");
 
     if (product) {
         document.getElementById("productName").value = product.name || "";
         document.getElementById("productDescription").value = product.description || "";
-        document.getElementById("productCategory").value = product.category_id || "";
-        document.getElementById("productPrice").value = product.price || "";
-        document.getElementById("productStock").value = product.stock ?? 0;
+        categorySelect.value = product.category_id || "";
+        categorySelect.disabled = true;
         document.getElementById("productImage").value = product.image || "";
-        document.getElementById("productFeatured").checked = Boolean(Number(product.featured));
+        document.getElementById("productFeatured").checked =
+            Boolean(Number(product.featured));
+
+        newPrices.classList.add("hidden");
+        existingVariants.classList.remove("hidden");
+        renderExistingVariants(product);
+    } else {
+        categorySelect.disabled = false;
+        newPrices.classList.remove("hidden");
+        existingVariants.classList.add("hidden");
+        document.getElementById("variantManagementList").innerHTML = "";
+        renderNewVariantPriceFields();
     }
 
     document.getElementById("productModal").classList.remove("hidden");
@@ -305,7 +392,10 @@ function openProductModal(product = null) {
 
 function closeProductModal() {
     document.getElementById("productModal").classList.add("hidden");
+    document.getElementById("productCategory").disabled = false;
 }
+
+document.getElementById("productCategory").addEventListener("change", renderNewVariantPriceFields);
 
 document.getElementById("addProductBtn").addEventListener("click", () => {
     openProductModal();
@@ -318,22 +408,31 @@ document.getElementById("productForm").addEventListener("submit", async event =>
     event.preventDefault();
 
     const id = document.getElementById("productId").value;
+    const categoryId = Number(document.getElementById("productCategory").value);
+    const message = document.getElementById("productMessage");
+
     const product = {
         name: document.getElementById("productName").value.trim(),
         description: document.getElementById("productDescription").value.trim(),
-        category_id: Number(document.getElementById("productCategory").value),
-        price: Number(document.getElementById("productPrice").value),
-        stock: Number(document.getElementById("productStock").value),
+        category_id: categoryId,
         image: document.getElementById("productImage").value.trim(),
         featured: document.getElementById("productFeatured").checked
     };
 
-    const message = document.getElementById("productMessage");
-
-    if (!product.name || product.price <= 0 ||
-        product.stock < 0 || !Number.isInteger(product.stock)) {
-        message.textContent = "Enter a valid name, price and whole-number stock.";
+    if (!product.name || !ADMIN_SIZE_OPTIONS[categoryId]) {
+        message.textContent = "Enter a product name and select a valid category.";
         return;
+    }
+
+    if (!id) {
+        product.variant_prices = [0, 1, 2].map(index =>
+            Number(document.getElementById(`variantPrice${index}`)?.value)
+        );
+
+        if (product.variant_prices.some(price => !Number.isFinite(price) || price <= 0)) {
+            message.textContent = "Enter a valid positive price for all three sizes.";
+            return;
+        }
     }
 
     try {
@@ -344,35 +443,62 @@ document.getElementById("productForm").addEventListener("submit", async event =>
 
         closeProductModal();
         await loadDashboard();
-        alert(id ? "Product updated successfully." : "Product added successfully.");
+        alert(id ? "Product details updated." : "Product and zero-stock variants created.");
     } catch (error) {
         message.textContent = error.message;
     }
 });
 
-document.getElementById("productsTable").addEventListener("click", async event => {
-    const editId = event.target.dataset.edit;
-    const deleteId = event.target.dataset.delete;
+document.getElementById("variantManagementList").addEventListener("click", async event => {
+    const button = event.target.closest("[data-save-variant]");
+    if (!button) return;
 
-    if (editId) {
-        const product = products.find(item => String(item.id) === editId);
-        if (product) openProductModal(product);
+    const variantId = button.dataset.saveVariant;
+    const row = button.closest("[data-variant-row]");
+    if (!variantId || !row) return;
+
+    const price = Number(row.querySelector("[data-variant-price]").value);
+    const stock = Number(row.querySelector("[data-variant-stock]").value);
+    const active = row.querySelector("[data-variant-active]").checked;
+    const message = row.querySelector("[data-variant-message]");
+
+    if (!Number.isFinite(price) || price <= 0 ||
+        !Number.isInteger(stock) || stock < 0) {
+        message.textContent = "Enter a valid price and whole-number stock.";
+        return;
     }
 
-    if (deleteId) {
-        const product = products.find(item => String(item.id) === deleteId);
-        if (!product) return;
+    button.disabled = true;
+    message.textContent = "Saving...";
 
-        if (!confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
+    try {
+        await api(`/admin/variants/${variantId}`, {
+            method: "PATCH",
+            body: JSON.stringify({ price, stock, active })
+        });
 
-        try {
-            await api(`/admin/products/${deleteId}`, { method: "DELETE" });
-            await loadDashboard();
-            alert("Product deleted.");
-        } catch (error) {
-            alert(error.message);
-        }
+        message.textContent = "Saved.";
+        await loadDashboard();
+
+        const updatedProduct = products.find(product =>
+            String(product.id) === document.getElementById("productId").value
+        );
+        if (updatedProduct) renderExistingVariants(updatedProduct);
+    } catch (error) {
+        message.textContent = error.message;
+    } finally {
+        button.disabled = false;
     }
+});
+
+document.getElementById("productsTable").addEventListener("click", event => {
+    const editButton = event.target.closest("[data-edit]");
+    if (!editButton) return;
+
+    const product = products.find(item =>
+        String(item.id) === editButton.dataset.edit
+    );
+    if (product) openProductModal(product);
 });
 
 document.getElementById("productSearch").addEventListener("input", renderProducts);

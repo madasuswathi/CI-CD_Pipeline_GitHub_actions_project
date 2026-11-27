@@ -130,16 +130,17 @@
             <label for="productCategory">Category</label>
             <select id="productCategory" required></select>
 
-            <div class="form-row">
-                <div>
-                    <label for="productPrice">Price (₹)</label>
-                    <input id="productPrice" type="number" min="0.01" step="0.01" required>
-                </div>
-                <div>
-                    <label for="productStock">Stock</label>
-                    <input id="productStock" type="number" min="0" step="1" required>
-                </div>
-            </div>
+            <section id="newVariantPrices">
+                <h3>Variant prices</h3>
+                <p class="muted">Enter prices for all three sizes. New variant stock starts at zero.</p>
+                <div id="variantPriceFields" class="variant-price-fields"></div>
+            </section>
+
+            <section id="existingVariantManagement" class="hidden">
+                <h3>Variant inventory and pricing</h3>
+                <p class="muted">Update each size's price and stock separately. Legacy product stock is not changed.</p>
+                <div id="variantManagementList"></div>
+            </section>
 
             <label for="productImage">Image path</label>
             <input id="productImage" placeholder="/images/products/product-01.jpg">

@@ -10,8 +10,6 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:?Missing DB_PASSWORD}
     volumes:
       - farmfresh_mysql_data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-      - ./database/catalog-data.sql:/docker-entrypoint-initdb.d/02-catalog-data.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
       interval: 10s
@@ -20,9 +18,8 @@ services:
       start_period: 30s
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: madasuswathi/farmfresh-ecommerce:latest
+    pull_policy: always
     container_name: farmfresh-app
     restart: unless-stopped
     env_file:
@@ -31,7 +28,7 @@ services:
       DB_HOST: db
       PORT: 5000
     ports:
-      - "5001:5000"
+      - "127.0.0.1:5001:5000"
     depends_on:
       db:
         condition: service_healthy

@@ -92,46 +92,114 @@ function renderProducts(containerId, products) {
         return;
     }
 
-    container.innerHTML = products.map(product => `
-        <div class="product-card">
-            <div class="product-image-wrapper">
-                <img
-                    src="${escapeHTML(getProductImage(product))}"
-                    alt="${escapeHTML(product.name)}"
-		    data-category="${escapeHTML(product.category_name || "")}"
-                    class="product-image"
-                    loading="lazy"
-                    onerror="loadImageFallback(this)"
-                />
-            </div>
+    container.innerHTML = products.map(product => {
+        const variants = Array.isArray(product.variants)
+            ? product.variants
+            : [];
 
-            <div class="product-details">
-                <span class="product-category">
-                    ${escapeHTML(product.category_name || "Organic")}
-                </span>
+        const firstVariant = variants[0];
+        const firstStock = Number(firstVariant?.stock || 0);
+        const available = firstVariant && firstStock > 0;
 
-                <h3>${escapeHTML(product.name)}</h3>
+        const variantOptions = variants.length
+            ? variants.map(variant => `
+                <option
+                    value="${Number(variant.id)}"
+                    data-price="${Number(variant.price)}"
+                    data-stock="${Number(variant.stock)}"
+                >
+                    ${escapeHTML(variant.variant_label)}
+                </option>
+            `).join("")
+            : `<option value="">Sizes unavailable</option>`;
 
-                <p class="product-description">
-                    ${escapeHTML(
-                        product.description ||
-                        "Natural and fresh product"
-                    )}
-                </p>
-
-                <div class="product-price">
-                    ${formatPrice(product.price)}
+        return `
+            <div class="product-card" data-product-id="${Number(product.id)}">
+                <div class="product-image-wrapper">
+                    <img
+                        src="${escapeHTML(getProductImage(product))}"
+                        alt="${escapeHTML(product.name)}"
+                        data-category="${escapeHTML(product.category_name || "")}"
+                        class="product-image"
+                        loading="lazy"
+                        onerror="loadImageFallback(this)"
+                    />
                 </div>
 
-                <button
-                    class="add-to-cart-btn"
-                    onclick="addToCart(${Number(product.id)})"
-                >
-                    Add to Cart
-                </button>
+                <div class="product-details">
+                    <span class="product-category">
+                        ${escapeHTML(product.category_name || "Organic")}
+                    </span>
+
+                    <h3>${escapeHTML(product.name)}</h3>
+
+                    <p class="product-description">
+                        ${escapeHTML(
+                            product.description ||
+                            "Natural and fresh product"
+                        )}
+                    </p>
+
+                    <label class="variant-label">
+                        Choose size
+                    </label>
+
+                    <select
+                        class="variant-select"
+                        onchange="updateProductVariant(this)"
+                        ${variants.length ? "" : "disabled"}
+                    >
+                        ${variantOptions}
+                    </select>
+
+                    <div class="product-price">
+                        ${firstVariant
+                            ? formatPrice(Number(firstVariant.price))
+                            : "Price unavailable"}
+                    </div>
+
+                    <p class="variant-stock">
+                        ${available
+                            ? `${firstStock} in stock`
+                            : "Out of stock"}
+                    </p>
+
+                    <button
+                        class="add-to-cart-btn"
+                        onclick="addToCart(${Number(product.id)}, this)"
+                        ${available ? "" : "disabled"}
+                    >
+                        ${available ? "Add to Cart" : "Out of Stock"}
+                    </button>
+                </div>
             </div>
-        </div>
-    `).join("");
+        `;
+    }).join("");
+}
+
+function updateProductVariant(select) {
+    const card = select.closest(".product-card");
+    const option = select.selectedOptions[0];
+
+    if (!card || !option) return;
+
+    const priceElement = card.querySelector(".product-price");
+    const stockElement = card.querySelector(".variant-stock");
+    const button = card.querySelector(".add-to-cart-btn");
+
+    const price = Number(option.dataset.price || 0);
+    const stock = Number(option.dataset.stock || 0);
+    const available = stock > 0;
+
+    priceElement.textContent = formatPrice(price);
+    stockElement.textContent = available
+        ? `${stock} in stock`
+        : "Out of stock";
+
+    button.disabled = !available;
+    button.textContent = available
+        ? "Add to Cart"
+        : "Out of Stock";
 }
 
 function filterProducts() {
@@ -220,12 +288,26 @@ async function loadProducts(containerId, featured = false) {
     }
 }
 
-async function addToCart(productId) {
+async function addToCart(productId, button) {
     const token = getToken();
 
     if (!token) {
         alert("Please login to add products to your cart.");
         window.location.href = "/login.html";
+        return;
+    }
+
+    const card = button?.closest(".product-card");
+    const variantSelect = card?.querySelector(".variant-select");
+    const variantId = Number(variantSelect?.value);
+
+    if (
+        !card ||
+        Number(card.dataset.productId) !== Number(productId) ||
+        !Number.isInteger(variantId) ||
+        variantId <= 0
+    ) {
+        alert("Please select a valid product size.");
         return;
     }
 
@@ -237,7 +319,7 @@ async function addToCart(productId) {
                 "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify({
-                product_id: productId,
+                variant_id: variantId,
                 quantity: 1
             })
         });

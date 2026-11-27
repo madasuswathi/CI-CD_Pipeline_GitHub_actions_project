@@ -63,7 +63,10 @@ async function loadCart() {
 
                 <div class="cart-item-info">
                     <h3>${item.name}</h3>
-                    <p>${money(item.price)}</p>
+                    <p class="cart-variant-label">
+                        Size: ${item.variant_label || "Variant"}
+                    </p>
+                    <p>${money(item.price)} per item</p>
 
                     <div class="quantity-control">
                         <button onclick="changeQuantity(${item.id}, ${item.quantity - 1})"
@@ -73,10 +76,15 @@ async function loadCart() {
 
                         <span>${item.quantity}</span>
 
-                        <button onclick="changeQuantity(${item.id}, ${item.quantity + 1})">
+                        <button onclick="changeQuantity(${item.id}, ${item.quantity + 1})"
+                                ${(item.quantity >= Number(item.variant_stock ?? item.stock ?? 0)) ? "disabled" : ""}>
                             +
                         </button>
                     </div>
+
+                    <p class="cart-variant-stock">
+                        Available: ${Number(item.variant_stock ?? item.stock ?? 0)}
+                    </p>
                 </div>
 
                 <div class="cart-item-right">

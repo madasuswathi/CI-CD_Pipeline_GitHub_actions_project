@@ -484,3 +484,92 @@ td {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+
+/* Product variant management */
+.variant-price-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.variant-price-field {
+    min-width: 0;
+}
+
+.variant-price-field label {
+    margin-top: 10px;
+}
+
+.variant-price-field input {
+    min-width: 0;
+}
+
+#newVariantPrices,
+#existingVariantManagement {
+    margin: 18px 0;
+    padding: 15px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fbfcf9;
+}
+
+#newVariantPrices h3,
+#existingVariantManagement h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+}
+
+.variant-admin-row {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+}
+
+.variant-admin-row h4 {
+    margin: 0;
+    font-size: 14px;
+}
+
+.variant-admin-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+}
+
+.variant-admin-fields label {
+    margin-top: 8px;
+}
+
+.variant-active-label {
+    display: flex !important;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+.variant-active-label input {
+    width: auto;
+}
+
+.variant-admin-row .secondary-btn {
+    margin-top: 12px;
+}
+
+.variant-admin-row [data-variant-message] {
+    margin-left: 10px;
+}
+
+@media (max-width: 650px) {
+    .variant-price-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .variant-admin-fields {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .variant-active-label {
+        grid-column: 1 / -1;
+    }
+}

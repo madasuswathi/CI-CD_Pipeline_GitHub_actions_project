@@ -1229,3 +1229,48 @@ button:disabled {
     }
 }
 
+
+/* Product variant selector and stock status */
+.variant-label {
+    display: block;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    color: #526052;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.variant-select {
+    display: block;
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 11px;
+    border: 1px solid #d8dfd3;
+    border-radius: 8px;
+    background: #fff;
+    color: #244b36;
+    font: inherit;
+    font-size: 13px;
+}
+
+.variant-select:focus {
+    outline: 2px solid #9dbb8b;
+    outline-offset: 2px;
+}
+
+.variant-stock {
+    margin: 8px 0 0;
+    color: #647264;
+    font-size: 12px;
+}
+
+.add-to-cart-btn:disabled {
+    background: #d9ddd6;
+    color: #737a70;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.add-to-cart-btn:disabled:hover {
+    background: #d9ddd6;
+}
