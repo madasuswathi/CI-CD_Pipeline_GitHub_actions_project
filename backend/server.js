@@ -11,6 +11,7 @@ const db = require("./config/db");
 const app = express();
 
 app.disable("x-powered-by");
+// CI/CD deployment verification test.
 
 const allowedOrigins = (
     process.env.CORS_ORIGINS ||

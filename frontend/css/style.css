@@ -276,6 +276,38 @@ button:disabled {
     font-size: 13px;
     font-weight: 600;
 }
+/* Moving trust strip */
+
+.trust-strip.benefits-marquee {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.trust-strip.benefits-marquee .benefits-track {
+    display: flex;
+    width: max-content;
+    animation: farmfresh-benefits-scroll 25s linear infinite;
+}
+
+.trust-strip.benefits-marquee .benefits-track div {
+    flex: 0 0 auto;
+    padding: 0 35px;
+}
+
+@keyframes farmfresh-benefits-scroll {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+.trust-strip.benefits-marquee:hover .benefits-track {
+    animation-play-state: paused;
+}
 
 /* Sections */
 
