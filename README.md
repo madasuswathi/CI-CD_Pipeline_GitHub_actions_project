@@ -1,46 +1,44 @@
-
 # FarmFresh | E-Commerce Application & End-to-End DevOps Implementation
 
 <p align="center">
 
-**A Full-Stack E-Commerce Application with Automated CI/CD, Containerization and AWS Cloud Deployment**
+**A Full-Stack E-Commerce Application with Automated CI/CD, Docker Containerization and AWS Cloud Deployment**
 
 </p>
 
 ## Table of Contents
 
-1. [Project Overview](#1-project-overview)
-2. [Project Objectives](#2-project-objectives)
-3. [Technology Stack](#3-technology-stack)
-4. [Application Features](#4-application-features)
-5. [System Architecture](#5-system-architecture)
-6. [CI/CD Pipeline Implementation](#6-cicd-pipeline-implementation)
-7. [Containerization and Docker Hub](#7-containerization-and-docker-hub)
-8. [AWS Cloud Deployment](#8-aws-cloud-deployment)
-9. [Security Implementation](#9-security-implementation)
-10. [SonarCloud Code Quality](#10-sonarcloud-code-quality)
-11. [Project Links](#11-project-links)
-12. [Validation and Testing](#12-validation-and-testing)
-13. [Project Outcomes](#13-project-outcomes)
-14. [Future Enhancements](#14-future-enhancements)
+1. Project Overview
+2. Project Objectives
+3. Technology Stack
+4. Application Features
+5. System Architecture
+6. CI/CD Pipeline Implementation
+7. Containerization and Docker Hub
+8. AWS Cloud Deployment
+9. Security Implementation
+10. SonarCloud Code Quality
+11. Project Links
+12. Validation and Testing
+13. Project Outcomes
+14. Future Enhancements
 
-
+---
 
 ## 1. Project Overview
 
 **FarmFresh** is a full-stack e-commerce application developed to provide an online platform for purchasing fresh and traditional food products.
 
-This project demonstrates the implementation of an end-to-end DevOps workflow by integrating application development, source code management, continuous integration, code quality analysis, Docker containerization, image publishing, automated deployment and cloud hosting.
+The project demonstrates an end-to-end DevOps workflow by integrating application development, source code management, continuous integration, code quality analysis, Docker containerization, image publishing, automated deployment and cloud hosting.
 
 The application is deployed on an AWS EC2 Ubuntu server. Docker Compose manages the application and MySQL database containers, while Nginx acts as a reverse proxy for incoming HTTP requests.
 
 The CI/CD pipeline automates application validation, Docker image creation, publishing and deployment.
 
-**Project Type:** Full-Stack Development and DevOps Automation
-**Application Domain:** E-Commerce
-**Deployment Platform:** AWS EC2
-**CI/CD Tools:** GitHub Actions and Jenkins
-
+- **Project Type:** Full-Stack Development and DevOps Automation
+- **Application Domain:** E-Commerce
+- **Deployment Platform:** AWS EC2
+- **CI/CD Tools:** GitHub Actions and Jenkins
 
 ## 2. Project Objectives
 
@@ -54,9 +52,9 @@ The CI/CD pipeline automates application validation, Docker image creation, publ
 - Deploy the application on AWS EC2.
 - Configure Nginx as a reverse proxy.
 - Maintain persistent MySQL database storage.
+- Implement product variants and shared inventory management.
+- Validate cart quantities and product stock during checkout.
 - Verify application availability through health checks.
-
-
 
 ## 3. Technology Stack
 
@@ -77,33 +75,49 @@ The CI/CD pipeline automates application validation, Docker image creation, publ
 | Operating System | Ubuntu Linux |
 | Package Management | npm |
 
-
-
 ## 4. Application Features
 
 ### Customer Module
 
-- User registration and login.
+- Customer registration and login.
 - Product browsing and product details.
-- Product categories.
+- Product category browsing.
+- Multiple package-size variants for products.
+- Package-specific variant pricing.
 - Shopping cart management.
-- Cart quantity updates.
-- Customer order placement.
+- Cart quantity updates with stock validation.
+- Customer checkout and order placement.
+
+### Product Variants and Shared Inventory
+
+- Products support multiple package-size variants.
+- Each variant maintains its own package size and price.
+- Shared inventory is maintained at the product level.
+- All package sizes use the same available product stock.
+- Changing the package size changes the price, not the shared stock quantity.
+- Cart validation checks the combined quantity across variants of the same product.
+- Checkout deducts the purchased quantity from shared product stock.
+- Variant-level stock is not duplicated, helping prevent overselling.
+- Existing product stock values are preserved until actual purchases are completed.
 
 ### Administrator Module
 
 - Administrator authentication.
+- Admin dashboard.
 - Product management.
 - Category management.
-- Inventory management.
+- Shared product stock management.
+- Variant pricing management.
+- Variant active/inactive status management.
+- Low-stock monitoring based on shared product inventory.
 
 ### Backend Module
 
-- RESTful API development.
-- Node.js and Express.js integration.
+- RESTful API development using Node.js and Express.js.
 - MySQL database connectivity.
 - Authentication and authorization.
-- Product, cart and order management.
+- Product, variant, cart and order management.
+- Transaction-based cart and checkout stock validation.
 - Application health monitoring endpoint.
 
 ---
@@ -114,25 +128,25 @@ The project follows an automated CI/CD architecture connecting GitHub, GitHub Ac
 
 ### Architecture Diagram
 
-mermaid
+```mermaid
 flowchart TD
-    A["Developer"] --> B["GitHub Repository"]
-    B --> C["GitHub Actions CI"]
-    C --> D["Dependency Installation"]
-    D --> E["JavaScript Validation"]
-    E --> F["Docker Build Validation"]
-    C --> G["SonarCloud Analysis"]
-    F --> H["Docker Image Publishing"]
-    H --> I["Docker Hub Registry"]
-    I --> J["Jenkins Image Polling"]
-    J --> K["AWS EC2 - Ubuntu"]
-    K --> L["Docker Compose"]
-    L --> M["FarmFresh Application"]
-    L --> N["MySQL Database"]
-    O["Internet Users"] --> P["Nginx Reverse Proxy"]
+    A[Developer] --> B[GitHub Repository]
+    B --> C[GitHub Actions CI]
+    C --> D[Dependency Installation]
+    D --> E[JavaScript Validation]
+    E --> F[Docker Build Validation]
+    C --> G[SonarCloud Analysis]
+    F --> H[Docker Image Publishing]
+    H --> I[Docker Hub Registry]
+    I --> J[Jenkins Image Polling]
+    J --> K[AWS EC2 Ubuntu]
+    K --> L[Docker Compose]
+    L --> M[FarmFresh Application]
+    L --> N[MySQL Database]
+    O[Internet Users] --> P[Nginx Reverse Proxy]
     P --> M
     M --> N
-
+```
 
 ### Architecture Components
 
@@ -159,11 +173,9 @@ flowchart TD
 7. After successful CI validation, the Docker image is published to Docker Hub.
 8. Jenkins periodically checks Docker Hub for an updated image.
 9. Jenkins connects to AWS EC2 through SSH.
-10. Jenkins pulls the latest application image.
+10. Jenkins pulls the application image.
 11. Docker Compose updates the application container when a new image is detected.
-12. Jenkins verifies the deployment using the application health endpoint.
-
-
+12. Jenkins verifies deployment using the application health endpoint.
 
 ## 6. CI/CD Pipeline Implementation
 
@@ -196,13 +208,11 @@ GitHub Actions automates the continuous integration process.
 - npm dependency installation with `--ignore-scripts`.
 - Docker Hub credentials stored in GitHub Secrets.
 
-**Workflow Source:**
-
 [View GitHub Actions CI Workflow](https://github.com/madasuswathi/CI-CD_Pipeline_GitHub_actions_project/blob/main/.github/workflows/ci.yml)
 
 ### 6.2 Jenkins – Continuous Deployment
 
-Jenkins automates the deployment of the FarmFresh application to AWS EC2.
+Jenkins automates deployment of the FarmFresh application to AWS EC2.
 
 **Pipeline File:** `Jenkinsfile`
 
@@ -212,17 +222,15 @@ Jenkins automates the deployment of the FarmFresh application to AWS EC2.
 
 1. Jenkins checks Docker Hub periodically using a five-minute polling schedule.
 2. Detects whether a new application image is available.
-3. Establishes an SSH connection to the AWS EC2 server.
+3. Establishes an SSH connection to AWS EC2.
 4. Pulls the latest Docker image.
-5. Compares the existing and newly downloaded image IDs.
+5. Compares existing and newly downloaded image IDs.
 6. Updates the application container when a new image is detected.
 7. Preserves the existing MySQL service and persistent database volume.
 8. Executes an application health check.
 9. Verifies the application container status.
 
 The deployment process updates the application service without intentionally resetting the database or removing its persistent volume.
-
-**Pipeline Source:**
 
 [View Jenkinsfile](https://github.com/madasuswathi/CI-CD_Pipeline_GitHub_actions_project/blob/main/Jenkinsfile)
 
@@ -232,10 +240,9 @@ The project uses GitHub Actions for CI and Docker image publishing, while Jenkin
 
 This separation provides independent build and deployment responsibilities.
 
-
 ## 7. Containerization and Docker Hub
 
-Docker is used to package the FarmFresh application and its runtime dependencies into a portable container image.
+Docker packages the FarmFresh application and its runtime dependencies into a portable container image.
 
 ### Docker Image
 
@@ -245,19 +252,10 @@ https://hub.docker.com/r/madasuswathi/farmfresh-ecommerce
 
 **Image Tags:**
 
-text
+```text
 madasuswathi/farmfresh-ecommerce:latest
 madasuswathi/farmfresh-ecommerce:<commit-sha>
-
-
-### Docker Benefits
-
-- Consistent runtime environment.
-- Application portability.
-- Simplified deployment.
-- Container isolation.
-- Versioned image management.
-- Faster application updates.
+```
 
 ### Docker Compose
 
@@ -272,7 +270,14 @@ The application communicates with MySQL through Docker networking.
 
 Persistent storage is configured for the MySQL database to protect existing application data during application container updates.
 
+### Docker Benefits
 
+- Consistent runtime environment.
+- Application portability.
+- Simplified deployment.
+- Container isolation.
+- Versioned image management.
+- Faster application updates.
 
 ## 8. AWS Cloud Deployment
 
@@ -303,13 +308,28 @@ The MySQL database is maintained in persistent Docker storage and is not intende
 
 ### Live Application
 
-**Website:**
+**AWS EC2 Website:**
 
-http://3.108.51.128
+http://3.109.23.202
+
+**Customer Pages:**
+
+| Page | Live URL |
+|---|---|
+| Home | http://3.109.23.202/ |
+| Products | http://3.109.23.202/products.html |
+| Customer Login | http://3.109.23.202/login.html |
+| Customer Registration | http://3.109.23.202/register.html |
+| Shopping Cart | http://3.109.23.202/cart.html |
+| Checkout | http://3.109.23.202/checkout.html |
+
+**Administrator Panel:**
+
+http://3.109.23.202/admin/
 
 **API Health Endpoint:**
 
-http://3.108.51.128/api/health
+http://3.109.23.202/api/health
 
 **Expected Health Response:**
 
@@ -321,9 +341,19 @@ http://3.108.51.128/api/health
 }
 ```
 
+### Latest Verified Deployment
+
+| Detail | Value |
+|---|---|
+| Git commit | `8326d72` |
+| Cloud platform | AWS EC2 |
+| Container registry | Docker Hub |
+| Deployment automation | Jenkins |
+| Jenkins result | `Finished: SUCCESS` |
+| Application status | `UP` |
+| Database status | `Connected` |
+
 The health endpoint verifies application availability and database connectivity.
-
-
 
 ## 9. Security Implementation
 
@@ -343,7 +373,6 @@ Security practices implemented in the project include:
 - Application health verification after deployment.
 
 **Security Principle:** Sensitive credentials and database configuration are maintained outside the source code repository.
-
 
 ## 10. SonarCloud Code Quality
 
@@ -369,11 +398,11 @@ It helps identify:
 
 ### Previously Observed Quality Metrics
 
-The following values were observed in an earlier analysis and are included as a historical baseline. They are not represented as the current analysis results.
+The following values were observed in an earlier analysis and are included as a historical baseline. They are not represented as current analysis results.
 
 | Quality Metric | Previously Observed Result |
 |---|---|
-| Security | C |
+| Security | A |
 | Reliability | A |
 | Maintainability | A |
 | Security Hotspots Reviewed | 100% |
@@ -383,11 +412,7 @@ The following values were observed in an earlier analysis and are included as a 
 
 Refer to the live SonarCloud project for the latest analysis, issue counts and Quality Gate result.
 
-
-
 ## 11. Project Links
-
-All important project resources and deployment links are provided below.
 
 | Resource | Link |
 |---|---|
@@ -398,14 +423,17 @@ All important project resources and deployment links are provided below.
 | SonarCloud | [Code Quality Dashboard](https://sonarcloud.io/project/overview?id=madasuswathi_CI-CD_Pipeline_GitHub_actions_project) |
 | SonarCloud Issues | [Security Vulnerability Issues](https://sonarcloud.io/project/issues?types=VULNERABILITY&open=true&id=madasuswathi_CI-CD_Pipeline_GitHub_actions_project) |
 | SonarCloud Quality Gate | [Quality Gate Dashboard](https://sonarcloud.io/summary/overall?id=madasuswathi_CI-CD_Pipeline_GitHub_actions_project) |
-| AWS Live Website | [FarmFresh Application](http://3.108.51.128) |
-| API Health Check | [Application Health](http://3.108.51.128/api/health) |
-
-
+| AWS Live Website | [FarmFresh Application](http://3.109.23.202) |
+| Customer Login | [Login](http://3.109.23.202/login.html) |
+| Customer Registration | [Register](http://3.109.23.202/register.html) |
+| Products | [Browse Products](http://3.109.23.202/products.html) |
+| Shopping Cart | [Cart](http://3.109.23.202/cart.html) |
+| Administrator Panel | [Admin](http://3.109.23.202/admin/) |
+| API Health Check | [Application Health](http://3.109.23.202/api/health) |
 
 ## 12. Validation and Testing
 
-The following checks are part of the project validation process:
+The following checks are part of the project validation process.
 
 ### CI Validation
 
@@ -436,13 +464,15 @@ The following checks are part of the project validation process:
 ### Application Validation
 
 - User registration and login.
-- Product listing.
-- Category browsing.
-- Shopping cart operations.
-- Order placement.
-- Administrator functionality.
-
-
+- Product listing and category browsing.
+- Product variant selection.
+- Package-specific pricing.
+- Shared stock display across package sizes.
+- Shopping cart operations and quantity updates.
+- Shared stock validation across product variants.
+- Checkout inventory deduction.
+- Customer order placement.
+- Administrator product and shared-stock management.
 
 ## 13. Project Outcomes
 
@@ -460,11 +490,12 @@ Key outcomes:
 - Nginx reverse proxy configuration.
 - Docker Compose service management.
 - Persistent MySQL database storage.
+- Multiple product variants with package-specific pricing.
+- Shared product inventory across package sizes.
+- Transaction-based cart and checkout stock validation.
 - Automated deployment health verification.
 
 The implementation reduces manual deployment activities and provides a repeatable process for delivering application updates.
-
-
 
 ## 14. Future Enhancements
 
@@ -478,14 +509,13 @@ The implementation reduces manual deployment activities and provides a repeatabl
 - Implement production-grade deployment strategies.
 - Add centralized application logging.
 
-
-
 ## Project Information
 
 | Detail | Description |
 |---|---|
 | Project Name | FarmFresh |
 | Project Category | Full-Stack E-Commerce and DevOps |
+| Frontend | HTML, CSS, JavaScript |
 | Backend | Node.js and Express.js |
 | Database | MySQL |
 | CI | GitHub Actions |
@@ -496,6 +526,9 @@ The implementation reduces manual deployment activities and provides a repeatabl
 | Cloud Platform | AWS EC2 |
 | Web Server | Nginx |
 | Repository | madasuswathi/CI-CD_Pipeline_GitHub_actions_project |
+| Latest Verified Deployment Commit | `8326d72` |
+| Live Application | http://3.109.23.202 |
 
+---
 
 **FarmFresh – Automating Application Delivery from GitHub to AWS.**
