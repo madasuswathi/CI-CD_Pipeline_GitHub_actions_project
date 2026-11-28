@@ -130,6 +130,11 @@
             <label for="productCategory">Category</label>
             <select id="productCategory" required></select>
 
+            <label for="productStock">Shared product stock (sellable packs)</label>
+            <input id="productStock" type="number" min="0" step="1"
+                   value="0" required>
+            <p class="muted">This quantity is shared across every package size of this product.</p>
+
             <section id="newVariantPrices">
                 <h3>Variant prices</h3>
                 <p class="muted">Enter prices for all three sizes. New variant stock starts at zero.</p>
@@ -137,8 +142,8 @@
             </section>
 
             <section id="existingVariantManagement" class="hidden">
-                <h3>Variant inventory and pricing</h3>
-                <p class="muted">Update each size's price and stock separately. Legacy product stock is not changed.</p>
+                <h3>Variant pricing</h3>
+                <p class="muted">Update each size's price and availability. Shared stock is managed above and applies to all sizes.</p>
                 <div id="variantManagementList"></div>
             </section>
 

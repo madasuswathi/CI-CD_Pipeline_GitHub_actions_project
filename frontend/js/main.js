@@ -98,15 +98,15 @@ function renderProducts(containerId, products) {
             : [];
 
         const firstVariant = variants[0];
-        const firstStock = Number(firstVariant?.stock || 0);
-        const available = firstVariant && firstStock > 0;
+        const firstStock = Number(product.stock || 0);
+        const available = variants.length > 0 && firstStock > 0;
 
         const variantOptions = variants.length
             ? variants.map(variant => `
                 <option
                     value="${Number(variant.id)}"
                     data-price="${Number(variant.price)}"
-                    data-stock="${Number(variant.stock)}"
+                    data-stock="${Number(product.stock || 0)}"
                 >
                     ${escapeHTML(variant.variant_label)}
                 </option>

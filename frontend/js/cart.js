@@ -77,13 +77,13 @@ async function loadCart() {
                         <span>${item.quantity}</span>
 
                         <button onclick="changeQuantity(${item.id}, ${item.quantity + 1})"
-                                ${(item.quantity >= Number(item.variant_stock ?? item.stock ?? 0)) ? "disabled" : ""}>
+                                ${(item.quantity >= Number(item.stock || 0)) ? "disabled" : ""}>
                             +
                         </button>
                     </div>
 
                     <p class="cart-variant-stock">
-                        Available: ${Number(item.variant_stock ?? item.stock ?? 0)}
+                        Available: ${Number(item.stock || 0)}
                     </p>
                 </div>
 

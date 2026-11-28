@@ -133,12 +133,7 @@ function updateOverview() {
     document.getElementById("productCount").textContent = products.length;
     document.getElementById("orderCount").textContent = orders.length;
     document.getElementById("lowStockCount").textContent =
-        products.filter(product =>
-            Array.isArray(product.variants) &&
-            product.variants.some(variant =>
-                Number(variant.active) === 1 && Number(variant.stock) < 10
-            )
-        ).length;
+        products.filter(product => Number(product.stock || 0) < 10).length;
 
     const revenue = orders.reduce(
         (total, order) => total + Number(order.total_amount || 0), 0
@@ -269,7 +264,7 @@ function renderProducts() {
                         <th>Product</th>
                         <th>Category</th>
                         <th>Variants</th>
-                        <th>Variant stock</th>
+                        <th>Shared stock</th>
                         <th>Featured</th>
                         <th>Actions</th>
                     </tr>
@@ -277,9 +272,7 @@ function renderProducts() {
                 <tbody>
                     ${filtered.map(product => {
                         const variants = Array.isArray(product.variants) ? product.variants : [];
-                        const totalStock = variants.reduce(
-                            (sum, variant) => sum + Number(variant.stock || 0), 0
-                        );
+                        const sharedStock = Number(product.stock || 0);
                         return `
                             <tr>
                                 <td>
@@ -291,7 +284,7 @@ function renderProducts() {
                                 </td>
                                 <td>${escapeHTML(product.category_name || "—")}</td>
                                 <td>${variants.length} / 3</td>
-                                <td>${totalStock}</td>
+                                <td>${sharedStock}</td>
                                 <td>${Number(product.featured) ? "Yes" : "No"}</td>
                                 <td>
                                     <button type="button" class="action-btn" data-edit="${escapeHTML(product.id)}">Edit</button>
@@ -338,11 +331,6 @@ function renderExistingVariants(product) {
                     <input type="number" min="0.01" step="0.01"
                            data-variant-price value="${escapeHTML(variant.price)}" required>
                 </div>
-                <div>
-                    <label>Stock</label>
-                    <input type="number" min="0" step="1"
-                           data-variant-stock value="${escapeHTML(variant.stock ?? 0)}" required>
-                </div>
                 <label class="variant-active-label">
                     <input type="checkbox" data-variant-active
                            ${Number(variant.active) ? "checked" : ""}>
@@ -375,12 +363,15 @@ function openProductModal(product = null) {
         document.getElementById("productImage").value = product.image || "";
         document.getElementById("productFeatured").checked =
             Boolean(Number(product.featured));
+        document.getElementById("productStock").value =
+            Number(product.stock || 0);
 
         newPrices.classList.add("hidden");
         existingVariants.classList.remove("hidden");
         renderExistingVariants(product);
     } else {
         categorySelect.disabled = false;
+        document.getElementById("productStock").value = 0;
         newPrices.classList.remove("hidden");
         existingVariants.classList.add("hidden");
         document.getElementById("variantManagementList").innerHTML = "";
@@ -416,11 +407,17 @@ document.getElementById("productForm").addEventListener("submit", async event =>
         description: document.getElementById("productDescription").value.trim(),
         category_id: categoryId,
         image: document.getElementById("productImage").value.trim(),
-        featured: document.getElementById("productFeatured").checked
+        featured: document.getElementById("productFeatured").checked,
+        stock: Number(document.getElementById("productStock").value)
     };
 
     if (!product.name || !ADMIN_SIZE_OPTIONS[categoryId]) {
         message.textContent = "Enter a product name and select a valid category.";
+        return;
+    }
+
+    if (!Number.isInteger(product.stock) || product.stock < 0) {
+        message.textContent = "Enter a valid whole-number shared stock quantity.";
         return;
     }
 
@@ -443,7 +440,7 @@ document.getElementById("productForm").addEventListener("submit", async event =>
 
         closeProductModal();
         await loadDashboard();
-        alert(id ? "Product details updated." : "Product and zero-stock variants created.");
+        alert(id ? "Product details and shared stock updated." : "Product and variants created.");
     } catch (error) {
         message.textContent = error.message;
     }
@@ -458,13 +455,11 @@ document.getElementById("variantManagementList").addEventListener("click", async
     if (!variantId || !row) return;
 
     const price = Number(row.querySelector("[data-variant-price]").value);
-    const stock = Number(row.querySelector("[data-variant-stock]").value);
     const active = row.querySelector("[data-variant-active]").checked;
     const message = row.querySelector("[data-variant-message]");
 
-    if (!Number.isFinite(price) || price <= 0 ||
-        !Number.isInteger(stock) || stock < 0) {
-        message.textContent = "Enter a valid price and whole-number stock.";
+    if (!Number.isFinite(price) || price <= 0) {
+        message.textContent = "Enter a valid positive price.";
         return;
     }
 
@@ -474,7 +469,7 @@ document.getElementById("variantManagementList").addEventListener("click", async
     try {
         await api(`/admin/variants/${variantId}`, {
             method: "PATCH",
-            body: JSON.stringify({ price, stock, active })
+            body: JSON.stringify({ price, active })
         });
 
         message.textContent = "Saved.";

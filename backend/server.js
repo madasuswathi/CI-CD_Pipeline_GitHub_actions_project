@@ -313,17 +313,17 @@ app.post("/api/auth/login", async (req, res) => {
     }
 });
 
-// Get cart with selected variant details
+// Get cart with selected variant details and shared product stock
 app.get("/api/cart", authenticateToken, async (req, res) => {
     try {
         const [cart] = await db.query(
             `SELECT c.id, c.quantity,
                     p.id AS product_id,
                     p.name, p.image,
+                    p.stock AS stock,
                     v.id AS variant_id,
                     v.variant_label,
                     v.price,
-                    v.stock,
                     (v.price * c.quantity) AS subtotal
              FROM carts c
              JOIN products p ON c.product_id = p.id
@@ -341,56 +341,57 @@ app.get("/api/cart", authenticateToken, async (req, res) => {
     }
 });
 
-// Add selected variant to cart
+// Add selected variant using shared product stock
 app.post("/api/cart", authenticateToken, async (req, res) => {
+    const { variant_id, quantity = 1 } = req.body;
+
+    if (!Number.isInteger(Number(variant_id)) ||
+        Number(variant_id) < 1) {
+        return res.status(400).json({
+            message: "A valid product variant is required"
+        });
+    }
+
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        return res.status(400).json({
+            message: "Quantity must be a positive integer"
+        });
+    }
+
+    const connection = await db.getConnection();
+
     try {
-        const { variant_id, quantity = 1 } = req.body;
+        await connection.beginTransaction();
 
-        if (!Number.isInteger(Number(variant_id)) ||
-            Number(variant_id) < 1) {
-            return res.status(400).json({
-                message: "A valid product variant is required"
-            });
-        }
-
-        if (!Number.isInteger(quantity) || quantity < 1) {
-            return res.status(400).json({
-                message: "Quantity must be a positive integer"
-            });
-        }
-
-        const [variants] = await db.query(
-            `SELECT id, product_id, stock
-             FROM product_variants
-             WHERE id = ? AND active = 1`,
+        const [variants] = await connection.query(
+            `SELECT v.id, v.product_id, p.stock AS product_stock
+             FROM product_variants v
+             JOIN products p ON p.id = v.product_id
+             WHERE v.id = ? AND v.active = 1
+             FOR UPDATE`,
             [variant_id]
         );
 
         if (variants.length === 0) {
-            return res.status(404).json({
-                message: "Product size is unavailable"
-            });
+            throw new Error("Product size is unavailable");
         }
 
         const variant = variants[0];
 
-        const [existing] = await db.query(
-            `SELECT quantity FROM carts
-             WHERE user_id = ? AND variant_id = ?`,
-            [req.user.id, variant.id]
+        const [existing] = await connection.query(
+            `SELECT COALESCE(SUM(quantity), 0) AS current_quantity
+             FROM carts
+             WHERE user_id = ? AND product_id = ?`,
+            [req.user.id, variant.product_id]
         );
 
-        const currentQuantity = existing.length
-            ? existing[0].quantity
-            : 0;
+        const currentQuantity = Number(existing[0].current_quantity);
 
-        if (currentQuantity + quantity > variant.stock) {
-            return res.status(400).json({
-                message: "Insufficient stock for the selected size"
-            });
+        if (currentQuantity + quantity > Number(variant.product_stock)) {
+            throw new Error("Insufficient stock for this product");
         }
 
-        await db.query(
+        await connection.query(
             `INSERT INTO carts
              (user_id, product_id, variant_id, quantity)
              VALUES (?, ?, ?, ?)
@@ -404,63 +405,89 @@ app.post("/api/cart", authenticateToken, async (req, res) => {
             ]
         );
 
+        await connection.commit();
+
         res.status(201).json({
             message: "Selected size added to cart"
         });
     } catch (error) {
-        console.error("Failed to add variant to cart:", error.message);
-        res.status(500).json({
-            message: "Failed to add product to cart"
+        await connection.rollback();
+        res.status(400).json({
+            message: error.message || "Failed to add product to cart"
         });
+    } finally {
+        connection.release();
     }
 });
 
-// Update cart quantity with variant stock validation
+// Update cart quantity using shared product stock
 app.put("/api/cart/:id", authenticateToken, async (req, res) => {
+    const { quantity } = req.body;
+
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        return res.status(400).json({
+            message: "Invalid quantity"
+        });
+    }
+
+    const connection = await db.getConnection();
+
     try {
-        const { quantity } = req.body;
+        await connection.beginTransaction();
 
-        if (!Number.isInteger(quantity) || quantity < 1) {
-            return res.status(400).json({
-                message: "Invalid quantity"
-            });
-        }
-
-        const [items] = await db.query(
-            `SELECT c.id, v.stock, v.active
+        const [items] = await connection.query(
+            `SELECT c.id, c.product_id, v.active,
+                    p.stock AS product_stock
              FROM carts c
              JOIN product_variants v ON c.variant_id = v.id
-             WHERE c.id = ? AND c.user_id = ?`,
+             JOIN products p ON c.product_id = p.id
+             WHERE c.id = ? AND c.user_id = ?
+             FOR UPDATE`,
             [req.params.id, req.user.id]
         );
 
         if (items.length === 0) {
-            return res.status(404).json({
-                message: "Cart item not found"
-            });
+            throw new Error("Cart item not found");
         }
 
-        if (!items[0].active || quantity > items[0].stock) {
-            return res.status(400).json({
-                message: "Requested quantity is unavailable"
-            });
+        const item = items[0];
+
+        if (!item.active) {
+            throw new Error("This product size is unavailable");
         }
 
-        await db.query(
+        const [others] = await connection.query(
+            `SELECT COALESCE(SUM(quantity), 0) AS other_quantity
+             FROM carts
+             WHERE user_id = ? AND product_id = ? AND id <> ?`,
+            [req.user.id, item.product_id, item.id]
+        );
+
+        const otherQuantity = Number(others[0].other_quantity);
+
+        if (otherQuantity + quantity > Number(item.product_stock)) {
+            throw new Error("Requested quantity exceeds available product stock");
+        }
+
+        await connection.query(
             `UPDATE carts
              SET quantity = ?
              WHERE id = ? AND user_id = ?`,
             [quantity, req.params.id, req.user.id]
         );
 
+        await connection.commit();
+
         res.json({
             message: "Cart updated"
         });
     } catch (error) {
-        console.error("Failed to update cart:", error.message);
-        res.status(500).json({
-            message: "Failed to update cart"
+        await connection.rollback();
+        res.status(400).json({
+            message: error.message || "Failed to update cart"
         });
+    } finally {
+        connection.release();
     }
 });
 
@@ -483,7 +510,7 @@ app.delete("/api/cart/:id", authenticateToken, async (req, res) => {
     }
 });
 
-// Place order using selected variant prices and stock
+// Place order using variant prices and shared product stock
 app.post("/api/orders", authenticateToken, async (req, res) => {
     const { address } = req.body;
 
@@ -500,8 +527,10 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
 
         const [cart] = await connection.query(
             `SELECT c.product_id, c.variant_id, c.quantity,
-                    v.variant_label, v.price, v.stock, v.active
+                    p.stock AS product_stock,
+                    v.variant_label, v.price, v.active
              FROM carts c
+             JOIN products p ON c.product_id = p.id
              JOIN product_variants v ON c.variant_id = v.id
              WHERE c.user_id = ?
              FOR UPDATE`,
@@ -512,17 +541,46 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
             throw new Error("Your cart is empty");
         }
 
+        const productTotals = new Map();
         let totalCents = 0;
 
         for (const item of cart) {
-            if (!item.active || item.stock < item.quantity) {
+            if (!item.active) {
+                throw new Error("A selected product size is unavailable");
+            }
+
+            const productId = Number(item.product_id);
+            const existing = productTotals.get(productId) || {
+                quantity: 0,
+                stock: Number(item.product_stock)
+            };
+
+            existing.quantity += Number(item.quantity);
+            productTotals.set(productId, existing);
+
+            totalCents += Math.round(Number(item.price) * 100)
+                * Number(item.quantity);
+        }
+
+        for (const [productId, totals] of productTotals) {
+            if (totals.quantity > totals.stock) {
                 throw new Error(
-                    "Insufficient stock for a selected product size"
+                    "Insufficient stock for a selected product"
                 );
             }
 
-            totalCents += Math.round(Number(item.price) * 100)
-                * item.quantity;
+            const [stockUpdate] = await connection.query(
+                `UPDATE products
+                 SET stock = stock - ?
+                 WHERE id = ? AND stock >= ?`,
+                [totals.quantity, productId, totals.quantity]
+            );
+
+            if (stockUpdate.affectedRows !== 1) {
+                throw new Error(
+                    "Stock changed during checkout. Please try again."
+                );
+            }
         }
 
         const total = totalCents / 100;
@@ -550,23 +608,6 @@ app.post("/api/orders", authenticateToken, async (req, res) => {
                     item.price
                 ]
             );
-
-            const [stockUpdate] = await connection.query(
-                `UPDATE product_variants
-                 SET stock = stock - ?
-                 WHERE id = ? AND active = 1 AND stock >= ?`,
-                [
-                    item.quantity,
-                    item.variant_id,
-                    item.quantity
-                ]
-            );
-
-            if (stockUpdate.affectedRows !== 1) {
-                throw new Error(
-                    "Stock changed during checkout. Please try again."
-                );
-            }
         }
 
         await connection.query(
@@ -681,17 +722,19 @@ app.post(
     adminOnly,
     async (req, res) => {
         const {
-            name, description, category_id, image, featured, variant_prices
+            name, description, category_id, image, featured, variant_prices, stock
         } = req.body;
 
         const categoryId = Number(category_id);
         const sizes = ADMIN_VARIANT_SIZES[categoryId];
+        const sharedStock = Number(stock);
 
         if (!name || !String(name).trim() || !sizes ||
+            !Number.isInteger(sharedStock) || sharedStock < 0 ||
             !Array.isArray(variant_prices) || variant_prices.length !== 3 ||
             variant_prices.some(price => !Number.isFinite(Number(price)) || Number(price) <= 0)) {
             return res.status(400).json({
-                message: "Enter product details and three valid variant prices."
+                message: "Enter product details, valid shared stock, and three valid variant prices."
             });
         }
 
@@ -709,19 +752,20 @@ app.post(
                 throw new Error("Selected category does not exist.");
             }
 
-            // Legacy price is the medium-size reference; legacy stock stays zero.
+            // Product stock is shared by all package-size variants.
             const mediumPrice = Number(variant_prices[1]);
 
             const [productResult] = await connection.query(
                 `INSERT INTO products
                  (name, description, category_id, price, image, stock, featured)
-                 VALUES (?, ?, ?, ?, ?, 0, ?)`,
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                     String(name).trim(),
                     description || "",
                     categoryId,
                     mediumPrice,
                     image || "",
+                    sharedStock,
                     Boolean(featured)
                 ]
             );
@@ -764,26 +808,27 @@ app.post(
     }
 );
 
-// Admin: update product details only.
-// Legacy product price and stock are deliberately not modified.
+// Admin: update product details and shared product stock.
 app.put(
     "/api/admin/products/:id",
     authenticateToken,
     adminOnly,
     async (req, res) => {
         try {
-            const { name, description, category_id, image, featured } = req.body;
+            const { name, description, category_id, image, featured, stock } = req.body;
+            const sharedStock = Number(stock);
 
-            if (!name || !String(name).trim() || !category_id) {
+            if (!name || !String(name).trim() || !category_id ||
+                !Number.isInteger(sharedStock) || sharedStock < 0) {
                 return res.status(400).json({
-                    message: "Product name and category are required."
+                    message: "Product name, category, and valid shared stock are required."
                 });
             }
 
             const [result] = await db.query(
                 `UPDATE products
                  SET name = ?, description = ?, category_id = ?,
-                     image = ?, featured = ?
+                     image = ?, featured = ?, stock = ?
                  WHERE id = ?`,
                 [
                     String(name).trim(),
@@ -791,6 +836,7 @@ app.put(
                     category_id,
                     image || "",
                     Boolean(featured),
+                    sharedStock,
                     req.params.id
                 ]
             );
@@ -807,28 +853,27 @@ app.put(
     }
 );
 
-// Admin: update one variant's price, stock, or active status.
+// Admin: update one variant's price and active status. Stock is shared at product level.
 app.patch(
     "/api/admin/variants/:id",
     authenticateToken,
     adminOnly,
     async (req, res) => {
         try {
-            const { price, stock, active } = req.body;
+            const { price, active } = req.body;
 
             if (!Number.isFinite(Number(price)) || Number(price) <= 0 ||
-                !Number.isInteger(Number(stock)) || Number(stock) < 0 ||
                 ![true, false, 0, 1].includes(active)) {
                 return res.status(400).json({
-                    message: "Provide a positive price, whole-number stock, and active status."
+                    message: "Provide a positive price and valid active status."
                 });
             }
 
             const [result] = await db.query(
                 `UPDATE product_variants
-                 SET price = ?, stock = ?, active = ?
+                 SET price = ?, active = ?
                  WHERE id = ?`,
-                [Number(price), Number(stock), Boolean(Number(active)), req.params.id]
+                [Number(price), Boolean(Number(active)), req.params.id]
             );
 
             if (!result.affectedRows) {
